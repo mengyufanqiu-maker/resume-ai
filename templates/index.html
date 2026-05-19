@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResumeAI | 简历定制与神级面试预测</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        /* A4 纸质简历 CSS */
+        .ai-report { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; }
+        .ai-report h1 { font-size: 1.8rem; font-weight: 800; text-align: center; margin-bottom: 0.5rem; color: #111827; }
+        .ai-report p { text-align: center; color: #4b5563; margin-bottom: 1.5rem; font-size: 0.95rem; }
+        .ai-report h2 { color: #047857; font-size: 1.2rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 2px solid #047857; padding-bottom: 0.25rem; }
+        .ai-report h3 { font-size: 1.05rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #111827; }
+        .ai-report ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; line-height: 1.6; }
+        .ai-report li { margin-bottom: 0.4rem; }
+
+        /* 面试预测专属暗黑风 CSS */
+        .prep-report { color: #e2e8f0; line-height: 1.6; }
+        .prep-report h2 { color: #fbbf24; font-size: 1.3rem; font-weight: bold; margin-bottom: 1rem; display: flex; items-center; }
+        .prep-report strong { color: #f87171; font-weight: bold; }
+        .prep-report ul { list-style-type: square; padding-left: 1.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-briefcase text-emerald-600 text-2xl"></i>
+                <h1 class="text-xl font-bold text-slate-800">Resume<span class="text-emerald-600">AI</span></h1>
+            </div>
+            <div class="text-sm text-slate-500 font-medium">简历定制 + 面试预测神器</div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <form id="resumeForm" onsubmit="submitForm(event)" class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-file-pdf text-rose-500 mr-2"></i> 1. 上传原始简历</h2>
+                <div class="flex items-center justify-center w-full">
+                    <label for="resumeFile" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                            <p class="text-sm text-slate-500"><span class="font-semibold">点击上传简历文件</span></p>
+                        </div>
+                        <input id="resumeFile" type="file" class="hidden" accept=".pdf,.doc,.docx" onchange="updateFileName('resumeFile', 'resumeFileNameDisplay')" required />
+                    </label>
+                </div>
+                <p id="resumeFileNameDisplay" class="text-center text-sm text-emerald-600 font-medium mt-2 hidden"></p>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-crosshairs text-blue-500 mr-2"></i> 2. 提供岗位 JD (支持截图)</h2>
+                <div class="flex space-x-1 bg-slate-100 p-1 rounded-lg mb-4 w-full">
+                    <button type="button" id="btnJdText" onclick="switchJdMode('text')" class="flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition">粘贴文本</button>
+                    <button type="button" id="btnJdImg" onclick="switchJdMode('img')" class="flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition">上传截图</button>
+                </div>
+                <textarea id="jdText" rows="3" placeholder="在此粘贴 JD..." class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition resize-y block"></textarea>
+                <div id="jdImgArea" class="hidden flex items-center justify-center w-full">
+                    <label for="jdFile" class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
+                        <span class="text-sm text-slate-500 font-semibold"><i class="fa-solid fa-image"></i> 点击上传 JD 截图</span>
+                        <input id="jdFile" type="file" class="hidden" accept="image/*" onchange="updateFileName('jdFile', 'jdFileNameDisplay')" />
+                    </label>
+                </div>
+                <p id="jdFileNameDisplay" class="text-center text-sm text-blue-600 font-medium mt-2 hidden"></p>
+            </div>
+
+            <div class="md:col-span-2 text-center mt-2">
+                <button type="submit" id="submitBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-12 rounded-full shadow-lg transition transform hover:-translate-y-0.5 inline-flex items-center space-x-2">
+                    <i id="btnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span id="btnText">生成纯净简历 & 面试小抄</span>
+                </button>
+            </div>
+        </form>
+
+        <section id="resultSection" class="hidden space-y-6">
+
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative">
+                <div id="printArea" class="p-12 bg-white">
+                    <div id="resumeContent" class="ai-report"></div>
+                </div>
+                <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 text-right">
+                    <button onclick="downloadPDF()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-6 rounded-lg transition inline-flex items-center space-x-2">
+                        <i class="fa-solid fa-file-pdf"></i><span>一键下载 PDF 简历发给 HR</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="prepArea" class="bg-slate-900 rounded-2xl shadow-xl border border-slate-700 p-8 hidden">
+                <div class="flex items-center space-x-3 mb-6 border-b border-slate-700 pb-4">
+                    <i class="fa-solid fa-user-secret text-yellow-400 text-2xl"></i>
+                    <h2 class="text-xl font-bold text-white">个人绝密备考专区 (仅自己可见)</h2>
+                </div>
+                <div id="interviewContent" class="prep-report"></div>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        let currentJdMode = 'text';
+
+        function switchJdMode(mode) {
+            currentJdMode = mode;
+            if (mode === 'text') {
+                document.getElementById('btnJdText').className = 'flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition';
+                document.getElementById('btnJdImg').className = 'flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition';
+                document.getElementById('jdText').classList.replace('hidden', 'block');
+                document.getElementById('jdImgArea').classList.replace('flex', 'hidden');
+            } else {
+                document.getElementById('btnJdImg').className = 'flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition';
+                document.getElementById('btnJdText').className = 'flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition';
+                document.getElementById('jdImgArea').classList.replace('hidden', 'flex');
+                document.getElementById('jdText').classList.replace('block', 'hidden');
+            }
+        }
+
+        function updateFileName(inputId, displayId) {
+            const file = document.getElementById(inputId).files[0];
+            if (file) {
+                const display = document.getElementById(displayId);
+                display.innerText = '已选择: ' + file.name;
+                display.classList.remove('hidden');
+            }
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+            const resultSection = document.getElementById('resultSection');
+
+            btn.disabled = true;
+            btn.classList.replace('bg-emerald-600', 'bg-slate-400');
+            btnIcon.className = 'fa-solid fa-spinner fa-spin';
+            btnText.innerText = 'AI 正在生成简历与面试小抄...';
+            resultSection.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('resume_file', document.getElementById('resumeFile').files[0]);
+            formData.append('jd_mode', currentJdMode);
+
+            if (currentJdMode === 'text') {
+                formData.append('jd_text', document.getElementById('jdText').value);
+            } else {
+                formData.append('jd_file', document.getElementById('jdFile').files[0]);
+            }
+
+            try {
+                const response = await fetch('/api/customize_resume', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 💡 核心魔法：从 --- 处切开结果
+                    const parts = data.result.split('---');
+
+                    // 第 1 部分：渲染简历正文
+                    document.getElementById('resumeContent').innerHTML = marked.parse(parts[0]);
+
+                    // 第 2 部分：如果有面试预测，渲染到暗黑备考区
+                    if(parts.length > 1) {
+                        document.getElementById('interviewContent').innerHTML = marked.parse(parts[1]);
+                        document.getElementById('prepArea').classList.remove('hidden');
+                    } else {
+                        document.getElementById('prepArea').classList.add('hidden');
+                    }
+
+                    resultSection.classList.remove('hidden');
+                    resultSection.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('出错啦: ' + data.error);
+                }
+            } catch (error) {
+                alert('网络异常: ' + error);
+            }
+
+            btn.disabled = false;
+            btn.classList.replace('bg-slate-400', 'bg-emerald-600');
+            btnIcon.className = 'fa-solid fa-wand-magic-sparkles';
+            btnText.innerText = '生成纯净简历 & 面试小抄';
+        }
+
+        function downloadPDF() {
+            // 💡 只截取 #printArea，完美避开暗黑备考区！
+            const element = document.getElementById('printArea');
+            const opt = {
+                margin: 15, filename: '优化重构个人简历_正式版.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
