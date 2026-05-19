@@ -16,9 +16,10 @@ app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 你的专属密钥配置
+# 大厂安全规范：从云端/本地系统环境变量中读取密钥
 # ==========================================
-API_KEY = "sk-48bf10f821904382ae63972a30f5f6db"
+import os
+API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-48bf10f821904382ae63972a30f5f6db")
 API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 
