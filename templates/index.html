@@ -17,15 +17,33 @@
         .ai-report h3 { font-size: 1.05rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #111827; }
         .ai-report ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; line-height: 1.6; }
         .ai-report li { margin-bottom: 0.4rem; }
-
+        
         /* 面试预测专属暗黑风 CSS */
         .prep-report { color: #e2e8f0; line-height: 1.6; }
         .prep-report h2 { color: #fbbf24; font-size: 1.3rem; font-weight: bold; margin-bottom: 1rem; display: flex; items-center; }
         .prep-report strong { color: #f87171; font-weight: bold; }
         .prep-report ul { list-style-type: square; padding-left: 1.5rem; margin-bottom: 1rem; }
+
+        /* 骨架屏和加载动画 */
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800">
+
+    <div id="welcomeLoader" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-6 text-center transition-all duration-500">
+        <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md border border-slate-700 animate-pulse">
+            <i class="fa-solid fa-fire-burner text-amber-400 text-5xl mb-4"></i>
+            <h3 class="text-xl font-bold text-white mb-2">大模型沙盒环境正在点火</h3>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                由于采用云端免费托管，服务器初次加载需激活唤醒约 <span class="text-amber-400 font-bold">20-30 秒</span>。后续运行将恢复极速响应，感谢您的耐心等待！
+            </p>
+            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                <div class="bg-gradient-to-r from-amber-400 to-emerald-500 h-full w-full rounded-full transition-all duration-[20s]" style="width: 0%;" id="loadBar"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-4">本系统全栈由求职者独立研发与部署上线</p>
+        </div>
+    </div>
 
     <header class="bg-white shadow-sm sticky top-0 z-10">
         <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -55,14 +73,14 @@
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-crosshairs text-blue-500 mr-2"></i> 2. 提供岗位 JD (支持截图)</h2>
-                <div class="flex space-x-1 bg-slate-100 p-1 rounded-lg mb-4 w-full">
+                <div class="flex space-x-1 bg-slate-110 p-1 rounded-lg mb-4 w-full">
                     <button type="button" id="btnJdText" onclick="switchJdMode('text')" class="flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition">粘贴文本</button>
                     <button type="button" id="btnJdImg" onclick="switchJdMode('img')" class="flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition">上传截图</button>
                 </div>
                 <textarea id="jdText" rows="3" placeholder="在此粘贴 JD..." class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition resize-y block"></textarea>
                 <div id="jdImgArea" class="hidden flex items-center justify-center w-full">
                     <label for="jdFile" class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-                        <span class="text-sm text-slate-500 font-semibold"><i class="fa-solid fa-image"></i> 点击上传 JD 截图</span>
+                        <span class="text-sm text-slate-500 font-semibold"><i class="fa-solid fa-image"></i> 点击上传岗位详情 / JD 截图</span>
                         <input id="jdFile" type="file" class="hidden" accept="image/*" onchange="updateFileName('jdFile', 'jdFileNameDisplay')" />
                     </label>
                 </div>
@@ -78,7 +96,6 @@
         </form>
 
         <section id="resultSection" class="hidden space-y-6">
-
             <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative">
                 <div id="printArea" class="p-12 bg-white">
                     <div id="resumeContent" class="ai-report"></div>
@@ -97,11 +114,22 @@
                 </div>
                 <div id="interviewContent" class="prep-report"></div>
             </div>
-
         </section>
     </main>
 
     <script>
+        // 🪄 点火倒计时进度条与自动关闭
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.getElementById('loadBar');
+            setTimeout(() => { bar.style.width = '100%'; }, 100);
+            
+            // 2.5秒后自动淡出遮罩（假设本地或已被唤醒）
+            setTimeout(() => {
+                const loader = document.getElementById('welcomeLoader');
+                loader.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        });
+
         let currentJdMode = 'text';
 
         function switchJdMode(mode) {
@@ -154,22 +182,18 @@
             try {
                 const response = await fetch('/api/customize_resume', { method: 'POST', body: formData });
                 const data = await response.json();
-
+                
                 if (response.ok) {
-                    // 💡 核心魔法：从 --- 处切开结果
                     const parts = data.result.split('---');
-
-                    // 第 1 部分：渲染简历正文
                     document.getElementById('resumeContent').innerHTML = marked.parse(parts[0]);
-
-                    // 第 2 部分：如果有面试预测，渲染到暗黑备考区
+                    
                     if(parts.length > 1) {
                         document.getElementById('interviewContent').innerHTML = marked.parse(parts[1]);
                         document.getElementById('prepArea').classList.remove('hidden');
                     } else {
                         document.getElementById('prepArea').classList.add('hidden');
                     }
-
+                    
                     resultSection.classList.remove('hidden');
                     resultSection.scrollIntoView({ behavior: 'smooth' });
                 } else {
@@ -186,7 +210,6 @@
         }
 
         function downloadPDF() {
-            // 💡 只截取 #printArea，完美避开暗黑备考区！
             const element = document.getElementById('printArea');
             const opt = {
                 margin: 15, filename: '优化重构个人简历_正式版.pdf',
