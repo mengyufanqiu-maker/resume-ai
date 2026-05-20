@@ -1,7 +1,7 @@
 import os
 import requests
 import json
-import fitz  # PyMuPDF，用于解析 PDF
+import fitz  # PyMuPDF
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 
@@ -15,7 +15,6 @@ DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "helloworld") 
 
 def extract_text_from_pdf(file_bytes):
-    """从上传的 PDF 字节流中提取纯文本"""
     text = ""
     try:
         doc = fitz.open(stream=file_bytes, filetype="pdf")
@@ -26,7 +25,6 @@ def extract_text_from_pdf(file_bytes):
         return f"PDF解析失败: {str(e)}"
 
 def extract_text_from_image(file_bytes):
-    """调用 OCR.space 接口识别 JD 截图中的文字"""
     try:
         response = requests.post(
             'https://api.ocr.space/parse/image',
@@ -37,7 +35,6 @@ def extract_text_from_image(file_bytes):
         result = response.json()
         if result.get('IsErroredOnProcessing'):
             return "OCR 识别出错，请确保图片清晰。"
-        
         parsed_text = result.get('ParsedResults', [{}])[0].get('ParsedText', '')
         return parsed_text.strip()
     except Exception as e:
@@ -52,11 +49,9 @@ def generate_resume():
     if not DEEPSEEK_API_KEY:
         return jsonify({"error": "未检测到 DEEPSEEK_API_KEY"}), 500
 
-    # 1. 接收 FormData 数据
     resume_mode = request.form.get('resume_mode', 'text')
     jd_mode = request.form.get('jd_mode', 'text')
     
-    # 2. 提取简历文本
     resume_text = ""
     if resume_mode == 'pdf' and 'resume_file' in request.files:
         file = request.files['resume_file']
@@ -64,7 +59,6 @@ def generate_resume():
     else:
         resume_text = request.form.get('resume_text', '').strip()
 
-    # 3. 提取 JD 文本
     jd_text = ""
     if jd_mode == 'image' and 'jd_file' in request.files:
         file = request.files['jd_file']
@@ -73,9 +67,8 @@ def generate_resume():
         jd_text = request.form.get('jd_text', '').strip()
 
     if not resume_text or not jd_text:
-        return jsonify({"error": "简历或JD内容为空，请检查输入法方式或文件是否成功上传！"}), 400
+        return jsonify({"error": "简历或JD内容为空，请检查输入方式或文件是否成功上传！"}), 400
 
-    # 4. 构造大模型提示词
     system_prompt = f"""你是一位拥有十年大厂经验的高级技术与HR双料专家。当前任务：根据用户提供的目标岗位 JD，对其原有简历进行深度重构与精准对齐。
 
 【输入数据】：
@@ -85,15 +78,14 @@ def generate_resume():
 2. 目标岗位 JD (招聘需求)：
 {jd_text}
 
-【输出规范】：
+【输出规范与死命令】：
 1. 关键词对齐：提取 JD 中的核心能力词汇，无缝融入简历经历中。
 2. STAR法则：将原有经历改写为“情境-任务-行动-结果”结构，用数据化结果说话。
 3. 结构化排版：输出的内容必须包含【个人总结】、【核心技能对齐】、【重构后的项目经历】。
-4. 备考预测：在最后，必须提供一个名为【暗黑备考区】的章节，给出 3 道该岗位极大概率会问到的硬核面试题及作答思路。
+4. 备考预测：在你把整份简历写完之后，必须换行，输出暗号 `### 🌙 暗黑备考区`，并在该暗号下方给出 3 道该岗位极大概率会问到的硬核面试题及作答思路。绝对不允许把面试题揉进简历正文里！
 请直接输出 Markdown 格式，绝不废话。
 """
 
-    # 5. SSE 流式输出
     def generate_stream():
         try:
             response = requests.post(
@@ -113,7 +105,6 @@ def generate_resume():
                 timeout=60
             )
 
-            # 🚨 拦截器：如果接口欠费或密钥错误，直接把红字吐给前端
             if response.status_code != 200:
                 yield f"data: {json.dumps({'error': f'大模型接口拒绝访问，状态码: {response.status_code}'})}\n\n"
                 return
