@@ -3,156 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResumeAI | 简历定制与神级面试预测</title>
+    <title>ResumeAI | 大厂黑话简历双变量定制平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* A4 纸质简历 CSS */
-        .ai-report { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1f2937; }
-        .ai-report h1 { font-size: 1.8rem; font-weight: 800; text-align: center; margin-bottom: 0.5rem; color: #111827; }
-        .ai-report p { text-align: center; color: #4b5563; margin-bottom: 1.5rem; font-size: 0.95rem; }
-        .ai-report h2 { color: #047857; font-size: 1.2rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 2px solid #047857; padding-bottom: 0.25rem; }
-        .ai-report h3 { font-size: 1.05rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; color: #111827; }
-        .ai-report ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; line-height: 1.6; }
-        .ai-report li { margin-bottom: 0.4rem; }
-        
-        /* 面试预测专属暗黑风 CSS */
-        .prep-report { color: #e2e8f0; line-height: 1.6; }
-        .prep-report h2 { color: #fbbf24; font-size: 1.3rem; font-weight: bold; margin-bottom: 1rem; display: flex; items-center; }
-        .prep-report strong { color: #f87171; font-weight: bold; }
-        .prep-report ul { list-style-type: square; padding-left: 1.5rem; margin-bottom: 1rem; }
-
-        /* 骨架屏和加载动画 */
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
-        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .resume-render h2 { font-size: 1.3rem; font-weight: 800; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 1.5rem 0 0.75rem 0; color: #1e3a8a; }
+        .resume-render p, .resume-render li { font-size: 14px; line-height: 1.6; color: #334155; }
+        .resume-render ul { list-style-type: square; padding-left: 1.2rem; margin-bottom: 0.75rem; }
+        /* 隐藏原生的丑陋文件上传按钮 */
+        input[type="file"] { display: none; }
+        .custom-file-upload { display: inline-block; cursor: pointer; }
     </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800">
+<body class="bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 min-h-screen font-sans text-slate-800">
 
-    <div id="welcomeLoader" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center p-6 text-center transition-all duration-500">
-        <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-md border border-slate-700 animate-pulse">
-            <i class="fa-solid fa-fire-burner text-amber-400 text-5xl mb-4"></i>
-            <h3 class="text-xl font-bold text-white mb-2">大模型沙盒环境正在点火</h3>
-            <p class="text-slate-400 text-sm leading-relaxed mb-4">
-                由于采用云端免费托管，服务器初次加载需激活唤醒约 <span class="text-amber-400 font-bold">20-30 秒</span>。后续运行将恢复极速响应，感谢您的耐心等待！
-            </p>
-            <div class="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                <div class="bg-gradient-to-r from-amber-400 to-emerald-500 h-full w-full rounded-full transition-all duration-[20s]" style="width: 0%;" id="loadBar"></div>
-            </div>
-            <p class="text-xs text-slate-500 mt-4">本系统全栈由求职者独立研发与部署上线</p>
-        </div>
-    </div>
-
-    <header class="bg-white shadow-sm sticky top-0 z-10">
+    <header class="bg-white/80 backdrop-blur shadow-sm sticky top-0 z-10 border-b border-blue-100">
         <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-briefcase text-emerald-600 text-2xl"></i>
-                <h1 class="text-xl font-bold text-slate-800">Resume<span class="text-emerald-600">AI</span></h1>
+                <i class="fa-solid fa-user-tie text-blue-600 text-2xl"></i>
+                <h1 class="text-xl font-black text-slate-800 tracking-tight">Resume <span class="text-blue-600">AI</span></h1>
             </div>
-            <div class="text-sm text-slate-500 font-medium">简历定制 + 面试预测神器</div>
+            <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold">多模态简历定制外挂</span>
         </div>
     </header>
 
     <main class="max-w-6xl mx-auto px-4 py-8">
-        <form id="resumeForm" onsubmit="submitForm(event)" class="grid md:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-file-pdf text-rose-500 mr-2"></i> 1. 上传原始简历</h2>
-                <div class="flex items-center justify-center w-full">
-                    <label for="resumeFile" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                            <p class="text-sm text-slate-500"><span class="font-semibold">点击上传简历文件</span></p>
-                        </div>
-                        <input id="resumeFile" type="file" class="hidden" accept=".pdf,.doc,.docx" onchange="updateFileName('resumeFile', 'resumeFileNameDisplay')" required />
-                    </label>
+        <div class="grid lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 h-fit space-y-6">
+                <div>
+                    <h2 class="text-lg font-black text-slate-800">简历双变量智改</h2>
+                    <p class="text-xs text-slate-400 mt-0.5">支持文本粘贴或直接上传 JD 截图</p>
                 </div>
-                <p id="resumeFileNameDisplay" class="text-center text-sm text-emerald-600 font-medium mt-2 hidden"></p>
-            </div>
+                <form id="resumeForm" onsubmit="submitForm(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">1. 你的原始经历 (文本)</label>
+                        <textarea id="raw_resume" rows="4" placeholder="直接粘贴你原本的旧简历..." class="w-full text-sm p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" required></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 mb-1">2. 目标岗位 JD (二选一)</label>
+                        <textarea id="jd_text" rows="3" placeholder="可以直接粘贴 JD 文本..." class="w-full text-sm p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"></textarea>
+                        
+                        <label class="custom-file-upload w-full text-center border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-3 rounded-xl transition">
+                            <input type="file" id="jd_image" accept="image/png, image/jpeg" onchange="updateFileName()"/>
+                            <i class="fa-solid fa-image mr-2"></i><span id="fileNameDisplay">或者点击上传 JD 截图</span>
+                        </label>
+                    </div>
 
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold mb-4 flex items-center"><i class="fa-solid fa-crosshairs text-blue-500 mr-2"></i> 2. 提供岗位 JD (支持截图)</h2>
-                <div class="flex space-x-1 bg-slate-110 p-1 rounded-lg mb-4 w-full">
-                    <button type="button" id="btnJdText" onclick="switchJdMode('text')" class="flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition">粘贴文本</button>
-                    <button type="button" id="btnJdImg" onclick="switchJdMode('img')" class="flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition">上传截图</button>
-                </div>
-                <textarea id="jdText" rows="3" placeholder="在此粘贴 JD..." class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition resize-y block"></textarea>
-                <div id="jdImgArea" class="hidden flex items-center justify-center w-full">
-                    <label for="jdFile" class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition">
-                        <span class="text-sm text-slate-500 font-semibold"><i class="fa-solid fa-image"></i> 点击上传岗位详情 / JD 截图</span>
-                        <input id="jdFile" type="file" class="hidden" accept="image/*" onchange="updateFileName('jdFile', 'jdFileNameDisplay')" />
-                    </label>
-                </div>
-                <p id="jdFileNameDisplay" class="text-center text-sm text-blue-600 font-medium mt-2 hidden"></p>
-            </div>
-
-            <div class="md:col-span-2 text-center mt-2">
-                <button type="submit" id="submitBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-12 rounded-full shadow-lg transition transform hover:-translate-y-0.5 inline-flex items-center space-x-2">
-                    <i id="btnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span id="btnText">生成纯净简历 & 面试小抄</span>
-                </button>
-            </div>
-        </form>
-
-        <section id="resultSection" class="hidden space-y-6">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative">
-                <div id="printArea" class="p-12 bg-white">
-                    <div id="resumeContent" class="ai-report"></div>
-                </div>
-                <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 text-right">
-                    <button onclick="downloadPDF()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-6 rounded-lg transition inline-flex items-center space-x-2">
-                        <i class="fa-solid fa-file-pdf"></i><span>一键下载 PDF 简历发给 HR</span>
+                    <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-md flex items-center justify-center space-x-2 mt-4">
+                        <i id="btnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span id="btnText">AI 视觉读取与重构</span>
                     </button>
-                </div>
+                </form>
             </div>
 
-            <div id="prepArea" class="bg-slate-900 rounded-2xl shadow-xl border border-slate-700 p-8 hidden">
-                <div class="flex items-center space-x-3 mb-6 border-b border-slate-700 pb-4">
-                    <i class="fa-solid fa-user-secret text-yellow-400 text-2xl"></i>
-                    <h2 class="text-xl font-bold text-white">个人绝密备考专区 (仅自己可见)</h2>
+            <div class="lg:col-span-2 space-y-6 hidden" id="resultArea">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                        <div class="flex items-center space-x-2 border-b border-slate-100 pb-3 mb-4">
+                            <i class="fa-solid fa-file-invoice text-emerald-500"></i>
+                            <h3 class="font-black text-slate-800">模块一：A4 纸直出重构简历</h3>
+                        </div>
+                        <div class="resume-render" id="resumeDisplay"></div>
+                    </div>
+                    <div class="bg-slate-900 text-slate-100 p-6 rounded-2xl shadow-xl">
+                        <div class="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-4">
+                            <i class="fa-solid fa-user-secret text-amber-400"></i>
+                            <h3 class="font-black text-amber-400">模块二：暗黑面试官提问预测</h3>
+                        </div>
+                        <div class="prose prose-invert text-sm text-slate-300 space-y-3" id="examDisplay"></div>
+                    </div>
                 </div>
-                <div id="interviewContent" class="prep-report"></div>
             </div>
-        </section>
+        </div>
     </main>
 
     <script>
-        // 🪄 点火倒计时进度条与自动关闭
-        window.addEventListener('DOMContentLoaded', () => {
-            const bar = document.getElementById('loadBar');
-            setTimeout(() => { bar.style.width = '100%'; }, 100);
-            
-            // 2.5秒后自动淡出遮罩（假设本地或已被唤醒）
-            setTimeout(() => {
-                const loader = document.getElementById('welcomeLoader');
-                loader.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
-        });
-
-        let currentJdMode = 'text';
-
-        function switchJdMode(mode) {
-            currentJdMode = mode;
-            if (mode === 'text') {
-                document.getElementById('btnJdText').className = 'flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition';
-                document.getElementById('btnJdImg').className = 'flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition';
-                document.getElementById('jdText').classList.replace('hidden', 'block');
-                document.getElementById('jdImgArea').classList.replace('flex', 'hidden');
+        // 上传图片后改变按钮文字提示
+        function updateFileName() {
+            const input = document.getElementById('jd_image');
+            const display = document.getElementById('fileNameDisplay');
+            if (input.files && input.files.length > 0) {
+                display.innerText = "已选择: " + input.files[0].name;
             } else {
-                document.getElementById('btnJdImg').className = 'flex-1 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition';
-                document.getElementById('btnJdText').className = 'flex-1 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition';
-                document.getElementById('jdImgArea').classList.replace('hidden', 'flex');
-                document.getElementById('jdText').classList.replace('block', 'hidden');
-            }
-        }
-
-        function updateFileName(inputId, displayId) {
-            const file = document.getElementById(inputId).files[0];
-            if (file) {
-                const display = document.getElementById(displayId);
-                display.innerText = '已选择: ' + file.name;
-                display.classList.remove('hidden');
+                display.innerText = "或者点击上传 JD 截图";
             }
         }
 
@@ -161,63 +96,40 @@
             const btn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
-            const resultSection = document.getElementById('resultSection');
+            const resultArea = document.getElementById('resultArea');
 
             btn.disabled = true;
-            btn.classList.replace('bg-emerald-600', 'bg-slate-400');
             btnIcon.className = 'fa-solid fa-spinner fa-spin';
-            btnText.innerText = 'AI 正在生成简历与面试小抄...';
-            resultSection.classList.add('hidden');
+            btnText.innerText = '正在进行视觉解析与重构...';
 
+            // 打包数据，包含文本和图片
             const formData = new FormData();
-            formData.append('resume_file', document.getElementById('resumeFile').files[0]);
-            formData.append('jd_mode', currentJdMode);
-
-            if (currentJdMode === 'text') {
-                formData.append('jd_text', document.getElementById('jdText').value);
-            } else {
-                formData.append('jd_file', document.getElementById('jdFile').files[0]);
+            formData.append('raw_resume', document.getElementById('raw_resume').value);
+            formData.append('jd_text', document.getElementById('jd_text').value);
+            
+            const imageFile = document.getElementById('jd_image').files[0];
+            if (imageFile) {
+                formData.append('jd_image', imageFile);
             }
 
             try {
                 const response = await fetch('/api/customize_resume', { method: 'POST', body: formData });
                 const data = await response.json();
-                
                 if (response.ok) {
-                    const parts = data.result.split('---');
-                    document.getElementById('resumeContent').innerHTML = marked.parse(parts[0]);
+                    const rawResult = data.result;
+                    const parts = rawResult.split('---');
                     
-                    if(parts.length > 1) {
-                        document.getElementById('interviewContent').innerHTML = marked.parse(parts[1]);
-                        document.getElementById('prepArea').classList.remove('hidden');
-                    } else {
-                        document.getElementById('prepArea').classList.add('hidden');
-                    }
+                    document.getElementById('resumeDisplay').innerHTML = marked.parse(parts[0] || '');
+                    document.getElementById('examDisplay').innerHTML = marked.parse(parts[1] || '未检测到分割标志，请尝试重新生成。');
                     
-                    resultSection.classList.remove('hidden');
-                    resultSection.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                    alert('出错啦: ' + data.error);
-                }
-            } catch (error) {
-                alert('网络异常: ' + error);
-            }
+                    resultArea.classList.remove('hidden');
+                    resultArea.scrollIntoView({ behavior: 'smooth' });
+                } else { alert('重构失败: ' + data.error); }
+            } catch(e) { alert('请求异常: ' + e); }
 
             btn.disabled = false;
-            btn.classList.replace('bg-slate-400', 'bg-emerald-600');
             btnIcon.className = 'fa-solid fa-wand-magic-sparkles';
-            btnText.innerText = '生成纯净简历 & 面试小抄';
-        }
-
-        function downloadPDF() {
-            const element = document.getElementById('printArea');
-            const opt = {
-                margin: 15, filename: '优化重构个人简历_正式版.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-            html2pdf().set(opt).from(element).save();
+            btnText.innerText = 'AI 视觉读取与重构';
         }
     </script>
 </body>
