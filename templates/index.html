@@ -9,19 +9,25 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        .resume-body h1 { font-size: 1.8rem; font-weight: 900; color: #0f172a; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; }
-        .resume-body h2 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin: 1.5rem 0 0.75rem 0; background: #eff6ff; padding: 6px 12px; border-left: 4px solid #3b82f6; }
-        .resume-body h3 { font-size: 1.15rem; font-weight: 700; color: #2563eb; margin-top: 1.2rem; }
-        .resume-body p { margin-bottom: 0.8rem; line-height: 1.7; color: #334155; }
+        /* 纯白简历排版 */
+        .resume-body h1 { font-size: 1.7rem; font-weight: 900; color: #0f172a; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
+        .resume-body h2 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 1.4rem 0 0.6rem 0; background: #f0fdf4; padding: 6px 12px; border-left: 4px solid #16a34a; }
+        .resume-body h3 { font-size: 1.1rem; font-weight: 700; color: #2563eb; margin-top: 1rem; }
+        .resume-body p { margin-bottom: 0.7rem; line-height: 1.7; color: #334155; }
         .resume-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #334155; }
         .resume-body li { margin-bottom: 0.4rem; line-height: 1.6; }
         
+        /* 🌙 独立暗黑备考区专属排版（不进入PDF） */
+        .dark-zone h1, .dark-zone h2, .dark-zone h3 { color: #f8fafc !important; }
+        .dark-zone h2 { background: #1e293b !important; border-left: 4px solid #f59e0b !important; }
+        .dark-zone h3 { color: #f59e0b !important; }
+        .dark-zone p, .dark-zone li { color: #cbd5e1 !important; }
+
         .mode-radio:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; }
         .mode-radio:not(:checked) + div { background-color: white; color: #64748b; border-color: #e2e8f0; }
         .cursor-blink { animation: blink 1s step-end infinite; color: #3b82f6; font-weight: 900; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        /* 修复拖拽区域样式 */
         .file-upload-zone { border: 2px dashed #cbd5e1; background-color: #f8fafc; transition: all 0.3s; }
         .file-upload-zone:hover { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
@@ -34,25 +40,24 @@
                 <i class="fa-solid fa-file-signature text-blue-500 text-2xl"></i>
                 <h1 class="text-xl font-black text-slate-800 tracking-tight">Resume<span class="text-blue-500">AI</span></h1>
             </div>
-            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">V2.0 多模态双变量引擎</span>
+            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">V2.1 纯净切割渲染版</span>
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto px-4 py-8">
         <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 mb-8">
             <form id="resumeForm" onsubmit="startGeneration(event)" class="space-y-8">
-                
                 <div>
                     <div class="flex justify-between items-center mb-4">
-                        <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-user-tie text-blue-500 mr-2"></i>第一步：上传您的原有简历</label>
+                        <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-user-tie text-blue-500 mr-2"></i>第一步：上传您的原有简历内容</label>
                         <div class="inline-flex bg-slate-100 rounded-lg p-1">
                             <label class="cursor-pointer">
                                 <input type="radio" name="resume_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('resume')">
-                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">直接粘贴文本</div>
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">粘贴文本</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="resume_mode" value="pdf" class="hidden mode-radio" onchange="toggleInput('resume')">
-                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 PDF 文件</div>
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 PDF</div>
                             </label>
                         </div>
                     </div>
@@ -72,26 +77,26 @@
                         <div class="inline-flex bg-slate-100 rounded-lg p-1">
                             <label class="cursor-pointer">
                                 <input type="radio" name="jd_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('jd')">
-                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">直接粘贴文本</div>
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">粘贴文本</div>
                             </label>
                             <label class="cursor-pointer">
                                 <input type="radio" name="jd_mode" value="image" class="hidden mode-radio" onchange="toggleInput('jd')">
-                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 JD 截图</div>
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传截图</div>
                             </label>
                         </div>
                     </div>
                     <div id="jd_text_zone">
-                        <textarea id="jd_text" rows="4" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将招聘软件上的岗位描述(JD)粘贴至此..."></textarea>
+                        <textarea id="jd_text" rows="4" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将岗位描述(JD)粘贴至此..."></textarea>
                     </div>
                     <div id="jd_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer relative">
                         <input type="file" id="jd_file" accept="image/png, image/jpeg, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="showFileName(this, 'jd_filename')">
                         <i class="fa-solid fa-image text-4xl text-slate-400 mb-3"></i>
-                        <p class="text-sm font-bold text-slate-600" id="jd_filename">点击或拖拽上传 JD 截图 (支持 PNG/JPG)</p>
+                        <p class="text-sm font-bold text-slate-600" id="jd_filename">点击或拖拽上传 JD 截图</p>
                     </div>
                 </div>
 
                 <div class="text-center pt-4">
-                    <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-16 rounded-full shadow-lg transition transform hover:-translate-y-0.5 inline-flex items-center space-x-2">
+                    <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-16 rounded-full shadow-lg transition flex items-center space-x-2 mx-auto">
                         <i id="btnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
                         <span id="btnText">一键透视 JD 并重构简历</span>
                     </button>
@@ -99,26 +104,30 @@
             </form>
         </div>
 
-        <section id="resultSection" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden min-h-[400px] relative">
-                
+        <section id="resultSection" class="hidden space-y-6">
+            
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden min-h-[250px] relative">
                 <div class="absolute top-6 right-6 hidden z-10" id="pdfBtnWrapper">
-                    <button onclick="downloadPDF()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md transition flex items-center space-x-2">
-                        <i class="fa-solid fa-download text-emerald-400"></i>
-                        <span>导出 A4 简历 PDF</span>
+                    <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>导出纯净 A4 简历 PDF</span>
                     </button>
                 </div>
 
                 <div class="p-10 resume-body" id="exportContent">
-                    <div id="tabContentDisplay"></div>
+                    <div id="resumeDisplay"></div>
                 </div>
             </div>
+
+            <div id="interviewZone" class="hidden p-8 bg-slate-900 text-slate-100 rounded-2xl shadow-xl dark-zone resume-body">
+                </div>
+
         </section>
     </main>
 
     <script>
         function toggleInput(type) {
-            const mode = document.querySelector(`input[name="${type}_mode"]:checked`).value;
+            const mode = document.querySelector(`input[name="${type}_mode"]:checked').value;
             if (mode === 'text') {
                 document.getElementById(`${type}_text_zone`).classList.remove('hidden');
                 document.getElementById(`${type}_file_zone`).classList.add('hidden');
@@ -130,7 +139,7 @@
 
         function showFileName(input, labelId) {
             if (input.files && input.files[0]) {
-                document.getElementById(labelId).innerText = "已选择: " + input.files[0].name;
+                document.getElementById(labelId).innerText = "已就绪: " + input.files[0].name;
                 document.getElementById(labelId).classList.add('text-blue-600');
             }
         }
@@ -141,10 +150,10 @@
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
             const resultSection = document.getElementById('resultSection');
-            const display = document.getElementById('tabContentDisplay');
+            const resumeDisplay = document.getElementById('resumeDisplay');
+            const interviewZone = document.getElementById('interviewZone');
             const pdfBtnWrapper = document.getElementById('pdfBtnWrapper');
             
-            // 构建 FormData 进行文件上传
             const formData = new FormData();
             
             const resumeMode = document.querySelector('input[name="resume_mode"]:checked').value;
@@ -153,7 +162,7 @@
                 formData.append('resume_text', document.getElementById('resume_text').value);
             } else {
                 const fileInput = document.getElementById('resume_file');
-                if(!fileInput.files[0]) { alert("请先选择 PDF 文件！"); return; }
+                if(!fileInput.files[0]) { alert("请先上传简历 PDF！"); return; }
                 formData.append('resume_file', fileInput.files[0]);
             }
 
@@ -163,31 +172,30 @@
                 formData.append('jd_text', document.getElementById('jd_text').value);
             } else {
                 const fileInput = document.getElementById('jd_file');
-                if(!fileInput.files[0]) { alert("请先选择 JD 截图！"); return; }
+                if(!fileInput.files[0]) { alert("请先上传 JD 截图！"); return; }
                 formData.append('jd_file', fileInput.files[0]);
             }
 
             pdfBtnWrapper.classList.add('hidden');
+            interviewZone.classList.add('hidden');
+            interviewZone.innerHTML = '';
             btn.disabled = true;
             btnIcon.className = 'fa-solid fa-spinner fa-spin';
-            btnText.innerText = '正在执行视觉解析与大模型对齐...';
+            btnText.innerText = '正在执行跨模态对齐审计...';
             
             resultSection.classList.remove('hidden');
-            display.innerHTML = `<span class="text-blue-500 font-bold animate-pulse"><i class="fa-solid fa-microchip mr-2"></i> 正在读取文件/截图，调用视觉引擎并唤醒大模型...</span><br><br><span class="cursor-blink">█</span>`;
+            resumeDisplay.innerHTML = `<span class="text-blue-500 font-bold animate-pulse"><i class="fa-solid fa-microchip mr-2"></i> 正在读取并提取双变量特征，正在接入流式打字机信道...</span><br><br><span class="cursor-blink">█</span>`;
             resultSection.scrollIntoView({ behavior: 'smooth' });
 
             let currentText = "";
 
             try {
-                // 不设置 Content-Type，让浏览器自动识别 multipart/form-data 和 boundary
                 const response = await fetch('/api/generate_resume', {
                     method: 'POST',
                     body: formData
                 });
 
-                if (!response.ok) {
-                    throw new Error("服务器拒绝连接或文件过大");
-                }
+                if (!response.ok) throw new Error("云端渲染接口拒绝访问");
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder('utf-8');
@@ -211,18 +219,50 @@
                                 if (parsed.error) throw new Error(parsed.error);
                                 if (parsed.text) {
                                     currentText += parsed.text;
-                                    display.innerHTML = marked.parse(currentText) + '<span class="cursor-blink">█</span>';
+                                    
+                                    // 🚀 核心黑科技：实时双向动线解耦切割
+                                    let resumeMarkdown = currentText;
+                                    let interviewMarkdown = "";
+                                    
+                                    const splitRegex = /###?\s*🌙?\s*暗黑备考区/i;
+                                    const match = currentText.match(splitRegex);
+                                    
+                                    if (match) {
+                                        const index = match.index;
+                                        resumeMarkdown = currentText.substring(0, index);
+                                        interviewMarkdown = currentText.substring(index);
+                                    }
+                                    
+                                    // 渲染纯白简历区
+                                    resumeDisplay.innerHTML = marked.parse(resumeMarkdown) + (match ? '' : '<span class="cursor-blink">█</span>');
+                                    
+                                    // 渲染暗黑备考区
+                                    if (interviewMarkdown) {
+                                        interviewZone.classList.remove('hidden');
+                                        interviewZone.innerHTML = marked.parse(interviewMarkdown) + '<span class="cursor-blink">█</span>';
+                                    }
                                 }
                             } catch (e) { }
                         }
                     }
                 }
 
-                display.innerHTML = marked.parse(currentText);
+                // 定型去掉所有残余光标
+                let finalResume = currentText;
+                let finalInterview = "";
+                const splitRegex = /###?\s*🌙?\s*暗黑备考区/i;
+                const match = currentText.match(splitRegex);
+                if (match) {
+                    finalResume = currentText.substring(0, match.index);
+                    finalInterview = currentText.substring(match.index);
+                }
+                resumeDisplay.innerHTML = marked.parse(finalResume);
+                if (finalInterview) interviewZone.innerHTML = marked.parse(finalInterview);
+                
                 pdfBtnWrapper.classList.remove('hidden');
 
             } catch (e) {
-                display.innerHTML = `<span class="text-red-500 font-bold">❌ 处理失败: ${e.message}</span>`;
+                resumeDisplay.innerHTML = `<span class="text-red-500 font-bold">❌ 调度故障: ${e.message}</span>`;
             }
 
             btn.disabled = false;
@@ -230,21 +270,15 @@
             btnText.innerText = '一键透视 JD 并重构简历';
         }
 
-        // html2pdf.js 一键导出 PDF 核心逻辑
         function downloadPDF() {
             const element = document.getElementById('exportContent');
             const opt = {
-                margin:       10,
-                filename:     '定制简历_ResumeAI.pdf',
+                margin:       12,
+                filename:     '张羽_精选对齐简历.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
-            
-            // 隐藏可能影响排版的闪烁光标等临时元素
-            const blinker = element.querySelector('.cursor-blink');
-            if(blinker) blinker.remove();
-
             html2pdf().set(opt).from(element).save();
         }
     </script>
