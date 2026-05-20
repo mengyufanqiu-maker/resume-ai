@@ -94,7 +94,7 @@ def generate_resume():
 """
 
     # 5. SSE 流式输出
-    def generate_stream():
+def generate_stream():
         try:
             response = requests.post(
                 "https://api.deepseek.com/v1/chat/completions",
@@ -113,10 +113,15 @@ def generate_resume():
                 timeout=60
             )
 
+            # 🚨 新增补丁：如果大模型接口没返回 200 成功码，立刻把真实报错抛给前端！
+            if response.status_code != 200:
+                yield f"data: {json.dumps({'error': f'DeepSeek官方接口报错，状态码: {response.status_code}，请检查API Key或余额。'})}\n\n"
+                return
+
             for line in response.iter_lines():
                 if line:
                     decoded_line = line.decode('utf-8').strip()
-                    if decoded_line.startswith('data: '):
+                    # ... 后面的代码保持不变 ...
                         data_str = decoded_line[6:].strip()
                         if data_str == '[DONE]' or not data_str:
                             continue
