@@ -12,7 +12,7 @@ CORS(app)
 # 🔐 环境变量与 API 密钥
 # ==========================================
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "helloworld") # 免费测试 Key，建议自己去注册一个换上
+OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "helloworld") 
 
 def extract_text_from_pdf(file_bytes):
     """从上传的 PDF 字节流中提取纯文本"""
@@ -73,7 +73,7 @@ def generate_resume():
         jd_text = request.form.get('jd_text', '').strip()
 
     if not resume_text or not jd_text:
-        return jsonify({"error": "简历或JD内容提取失败，请检查输入法方式或文件是否为空！"}), 400
+        return jsonify({"error": "简历或JD内容为空，请检查输入法方式或文件是否成功上传！"}), 400
 
     # 4. 构造大模型提示词
     system_prompt = f"""你是一位拥有十年大厂经验的高级技术与HR双料专家。当前任务：根据用户提供的目标岗位 JD，对其原有简历进行深度重构与精准对齐。
@@ -94,7 +94,7 @@ def generate_resume():
 """
 
     # 5. SSE 流式输出
-def generate_stream():
+    def generate_stream():
         try:
             response = requests.post(
                 "https://api.deepseek.com/v1/chat/completions",
@@ -113,15 +113,15 @@ def generate_stream():
                 timeout=60
             )
 
-            # 🚨 新增补丁：如果大模型接口没返回 200 成功码，立刻把真实报错抛给前端！
+            # 🚨 拦截器：如果接口欠费或密钥错误，直接把红字吐给前端
             if response.status_code != 200:
-                yield f"data: {json.dumps({'error': f'DeepSeek官方接口报错，状态码: {response.status_code}，请检查API Key或余额。'})}\n\n"
+                yield f"data: {json.dumps({'error': f'大模型接口拒绝访问，状态码: {response.status_code}'})}\n\n"
                 return
 
             for line in response.iter_lines():
                 if line:
                     decoded_line = line.decode('utf-8').strip()
-                    # ... 后面的代码保持不变 ...
+                    if decoded_line.startswith('data: '):
                         data_str = decoded_line[6:].strip()
                         if data_str == '[DONE]' or not data_str:
                             continue
@@ -133,7 +133,7 @@ def generate_stream():
                         except:
                             pass
         except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            yield f"data: {json.dumps({'error': f'网络或解析异常: {str(e)}'})}\n\n"
 
     return Response(generate_stream(), mimetype='text/event-stream')
 
