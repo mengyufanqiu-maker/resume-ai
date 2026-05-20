@@ -3,133 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResumeAI | 大厂黑话简历双变量定制平台</title>
+    <title>ResumeAI | 智能简历定制与多模态面试预测</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        .resume-render h2 { font-size: 1.3rem; font-weight: 800; border-bottom: 2px solid #2563eb; padding-bottom: 4px; margin: 1.5rem 0 0.75rem 0; color: #1e3a8a; }
-        .resume-render p, .resume-render li { font-size: 14px; line-height: 1.6; color: #334155; }
-        .resume-render ul { list-style-type: square; padding-left: 1.2rem; margin-bottom: 0.75rem; }
-        /* 隐藏原生的丑陋文件上传按钮 */
-        input[type="file"] { display: none; }
-        .custom-file-upload { display: inline-block; cursor: pointer; }
+        .resume-body h1 { font-size: 1.8rem; font-weight: 900; color: #0f172a; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; }
+        .resume-body h2 { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin: 1.5rem 0 0.75rem 0; background: #eff6ff; padding: 6px 12px; border-left: 4px solid #3b82f6; }
+        .resume-body h3 { font-size: 1.15rem; font-weight: 700; color: #2563eb; margin-top: 1.2rem; }
+        .resume-body p { margin-bottom: 0.8rem; line-height: 1.7; color: #334155; }
+        .resume-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #334155; }
+        .resume-body li { margin-bottom: 0.4rem; line-height: 1.6; }
+        
+        .mode-radio:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        .mode-radio:not(:checked) + div { background-color: white; color: #64748b; border-color: #e2e8f0; }
+        .cursor-blink { animation: blink 1s step-end infinite; color: #3b82f6; font-weight: 900; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* 修复拖拽区域样式 */
+        .file-upload-zone { border: 2px dashed #cbd5e1; background-color: #f8fafc; transition: all 0.3s; }
+        .file-upload-zone:hover { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 min-h-screen font-sans text-slate-800">
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
 
-    <header class="bg-white/80 backdrop-blur shadow-sm sticky top-0 z-10 border-b border-blue-100">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+    <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-user-tie text-blue-600 text-2xl"></i>
-                <h1 class="text-xl font-black text-slate-800 tracking-tight">Resume <span class="text-blue-600">AI</span></h1>
+                <i class="fa-solid fa-file-signature text-blue-500 text-2xl"></i>
+                <h1 class="text-xl font-black text-slate-800 tracking-tight">Resume<span class="text-blue-500">AI</span></h1>
             </div>
-            <span class="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-bold">多模态简历定制外挂</span>
+            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">V2.0 多模态双变量引擎</span>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
-        <div class="grid lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 h-fit space-y-6">
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 mb-8">
+            <form id="resumeForm" onsubmit="startGeneration(event)" class="space-y-8">
+                
                 <div>
-                    <h2 class="text-lg font-black text-slate-800">简历双变量智改</h2>
-                    <p class="text-xs text-slate-400 mt-0.5">支持文本粘贴或直接上传 JD 截图</p>
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-user-tie text-blue-500 mr-2"></i>第一步：上传您的原有简历</label>
+                        <div class="inline-flex bg-slate-100 rounded-lg p-1">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="resume_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('resume')">
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">直接粘贴文本</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="resume_mode" value="pdf" class="hidden mode-radio" onchange="toggleInput('resume')">
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 PDF 文件</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="resume_text_zone">
+                        <textarea id="resume_text" rows="5" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将您的原有简历文本粘贴至此..."></textarea>
+                    </div>
+                    <div id="resume_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer relative">
+                        <input type="file" id="resume_file" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="showFileName(this, 'resume_filename')">
+                        <i class="fa-solid fa-file-pdf text-4xl text-slate-400 mb-3"></i>
+                        <p class="text-sm font-bold text-slate-600" id="resume_filename">点击或拖拽上传 PDF 简历</p>
+                    </div>
                 </div>
-                <form id="resumeForm" onsubmit="submitForm(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">1. 你的原始经历 (文本)</label>
-                        <textarea id="raw_resume" rows="4" placeholder="直接粘贴你原本的旧简历..." class="w-full text-sm p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" required></textarea>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">2. 目标岗位 JD (二选一)</label>
-                        <textarea id="jd_text" rows="3" placeholder="可以直接粘贴 JD 文本..." class="w-full text-sm p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-2"></textarea>
-                        
-                        <label class="custom-file-upload w-full text-center border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold py-3 rounded-xl transition">
-                            <input type="file" id="jd_image" accept="image/png, image/jpeg" onchange="updateFileName()"/>
-                            <i class="fa-solid fa-image mr-2"></i><span id="fileNameDisplay">或者点击上传 JD 截图</span>
-                        </label>
-                    </div>
 
-                    <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition shadow-md flex items-center justify-center space-x-2 mt-4">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-briefcase text-emerald-500 mr-2"></i>第二步：导入目标岗位 JD (招聘需求)</label>
+                        <div class="inline-flex bg-slate-100 rounded-lg p-1">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="jd_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('jd')">
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">直接粘贴文本</div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="jd_mode" value="image" class="hidden mode-radio" onchange="toggleInput('jd')">
+                                <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 JD 截图</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="jd_text_zone">
+                        <textarea id="jd_text" rows="4" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将招聘软件上的岗位描述(JD)粘贴至此..."></textarea>
+                    </div>
+                    <div id="jd_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer relative">
+                        <input type="file" id="jd_file" accept="image/png, image/jpeg, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="showFileName(this, 'jd_filename')">
+                        <i class="fa-solid fa-image text-4xl text-slate-400 mb-3"></i>
+                        <p class="text-sm font-bold text-slate-600" id="jd_filename">点击或拖拽上传 JD 截图 (支持 PNG/JPG)</p>
+                    </div>
+                </div>
+
+                <div class="text-center pt-4">
+                    <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-16 rounded-full shadow-lg transition transform hover:-translate-y-0.5 inline-flex items-center space-x-2">
                         <i id="btnIcon" class="fa-solid fa-wand-magic-sparkles"></i>
-                        <span id="btnText">AI 视觉读取与重构</span>
+                        <span id="btnText">一键透视 JD 并重构简历</span>
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
+        </div>
 
-            <div class="lg:col-span-2 space-y-6 hidden" id="resultArea">
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
-                        <div class="flex items-center space-x-2 border-b border-slate-100 pb-3 mb-4">
-                            <i class="fa-solid fa-file-invoice text-emerald-500"></i>
-                            <h3 class="font-black text-slate-800">模块一：A4 纸直出重构简历</h3>
-                        </div>
-                        <div class="resume-render" id="resumeDisplay"></div>
-                    </div>
-                    <div class="bg-slate-900 text-slate-100 p-6 rounded-2xl shadow-xl">
-                        <div class="flex items-center space-x-2 border-b border-slate-800 pb-3 mb-4">
-                            <i class="fa-solid fa-user-secret text-amber-400"></i>
-                            <h3 class="font-black text-amber-400">模块二：暗黑面试官提问预测</h3>
-                        </div>
-                        <div class="prose prose-invert text-sm text-slate-300 space-y-3" id="examDisplay"></div>
-                    </div>
+        <section id="resultSection" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden min-h-[400px] relative">
+                
+                <div class="absolute top-6 right-6 hidden z-10" id="pdfBtnWrapper">
+                    <button onclick="downloadPDF()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md transition flex items-center space-x-2">
+                        <i class="fa-solid fa-download text-emerald-400"></i>
+                        <span>导出 A4 简历 PDF</span>
+                    </button>
+                </div>
+
+                <div class="p-10 resume-body" id="exportContent">
+                    <div id="tabContentDisplay"></div>
                 </div>
             </div>
-        </div>
+        </section>
     </main>
 
     <script>
-        // 上传图片后改变按钮文字提示
-        function updateFileName() {
-            const input = document.getElementById('jd_image');
-            const display = document.getElementById('fileNameDisplay');
-            if (input.files && input.files.length > 0) {
-                display.innerText = "已选择: " + input.files[0].name;
+        function toggleInput(type) {
+            const mode = document.querySelector(`input[name="${type}_mode"]:checked`).value;
+            if (mode === 'text') {
+                document.getElementById(`${type}_text_zone`).classList.remove('hidden');
+                document.getElementById(`${type}_file_zone`).classList.add('hidden');
             } else {
-                display.innerText = "或者点击上传 JD 截图";
+                document.getElementById(`${type}_text_zone`).classList.add('hidden');
+                document.getElementById(`${type}_file_zone`).classList.remove('hidden');
             }
         }
 
-        async function submitForm(event) {
+        function showFileName(input, labelId) {
+            if (input.files && input.files[0]) {
+                document.getElementById(labelId).innerText = "已选择: " + input.files[0].name;
+                document.getElementById(labelId).classList.add('text-blue-600');
+            }
+        }
+
+        async function startGeneration(event) {
             event.preventDefault();
             const btn = document.getElementById('submitBtn');
             const btnText = document.getElementById('btnText');
             const btnIcon = document.getElementById('btnIcon');
-            const resultArea = document.getElementById('resultArea');
-
-            btn.disabled = true;
-            btnIcon.className = 'fa-solid fa-spinner fa-spin';
-            btnText.innerText = '正在进行视觉解析与重构...';
-
-            // 打包数据，包含文本和图片
-            const formData = new FormData();
-            formData.append('raw_resume', document.getElementById('raw_resume').value);
-            formData.append('jd_text', document.getElementById('jd_text').value);
+            const resultSection = document.getElementById('resultSection');
+            const display = document.getElementById('tabContentDisplay');
+            const pdfBtnWrapper = document.getElementById('pdfBtnWrapper');
             
-            const imageFile = document.getElementById('jd_image').files[0];
-            if (imageFile) {
-                formData.append('jd_image', imageFile);
+            // 构建 FormData 进行文件上传
+            const formData = new FormData();
+            
+            const resumeMode = document.querySelector('input[name="resume_mode"]:checked').value;
+            formData.append('resume_mode', resumeMode);
+            if (resumeMode === 'text') {
+                formData.append('resume_text', document.getElementById('resume_text').value);
+            } else {
+                const fileInput = document.getElementById('resume_file');
+                if(!fileInput.files[0]) { alert("请先选择 PDF 文件！"); return; }
+                formData.append('resume_file', fileInput.files[0]);
             }
 
+            const jdMode = document.querySelector('input[name="jd_mode"]:checked').value;
+            formData.append('jd_mode', jdMode);
+            if (jdMode === 'text') {
+                formData.append('jd_text', document.getElementById('jd_text').value);
+            } else {
+                const fileInput = document.getElementById('jd_file');
+                if(!fileInput.files[0]) { alert("请先选择 JD 截图！"); return; }
+                formData.append('jd_file', fileInput.files[0]);
+            }
+
+            pdfBtnWrapper.classList.add('hidden');
+            btn.disabled = true;
+            btnIcon.className = 'fa-solid fa-spinner fa-spin';
+            btnText.innerText = '正在执行视觉解析与大模型对齐...';
+            
+            resultSection.classList.remove('hidden');
+            display.innerHTML = `<span class="text-blue-500 font-bold animate-pulse"><i class="fa-solid fa-microchip mr-2"></i> 正在读取文件/截图，调用视觉引擎并唤醒大模型...</span><br><br><span class="cursor-blink">█</span>`;
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+
+            let currentText = "";
+
             try {
-                const response = await fetch('/api/customize_resume', { method: 'POST', body: formData });
-                const data = await response.json();
-                if (response.ok) {
-                    const rawResult = data.result;
-                    const parts = rawResult.split('---');
+                // 不设置 Content-Type，让浏览器自动识别 multipart/form-data 和 boundary
+                const response = await fetch('/api/generate_resume', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error("服务器拒绝连接或文件过大");
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
                     
-                    document.getElementById('resumeDisplay').innerHTML = marked.parse(parts[0] || '');
-                    document.getElementById('examDisplay').innerHTML = marked.parse(parts[1] || '未检测到分割标志，请尝试重新生成。');
+                    buffer += decoder.decode(value, { stream: true });
+                    let lines = buffer.split('\n');
+                    buffer = lines.pop(); 
                     
-                    resultArea.classList.remove('hidden');
-                    resultArea.scrollIntoView({ behavior: 'smooth' });
-                } else { alert('重构失败: ' + data.error); }
-            } catch(e) { alert('请求异常: ' + e); }
+                    for (let line of lines) {
+                        line = line.trim();
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6).trim();
+                            if (dataStr === '[DONE]' || !dataStr) continue;
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                if (parsed.error) throw new Error(parsed.error);
+                                if (parsed.text) {
+                                    currentText += parsed.text;
+                                    display.innerHTML = marked.parse(currentText) + '<span class="cursor-blink">█</span>';
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                }
+
+                display.innerHTML = marked.parse(currentText);
+                pdfBtnWrapper.classList.remove('hidden');
+
+            } catch (e) {
+                display.innerHTML = `<span class="text-red-500 font-bold">❌ 处理失败: ${e.message}</span>`;
+            }
 
             btn.disabled = false;
             btnIcon.className = 'fa-solid fa-wand-magic-sparkles';
-            btnText.innerText = 'AI 视觉读取与重构';
+            btnText.innerText = '一键透视 JD 并重构简历';
+        }
+
+        // html2pdf.js 一键导出 PDF 核心逻辑
+        function downloadPDF() {
+            const element = document.getElementById('exportContent');
+            const opt = {
+                margin:       10,
+                filename:     '定制简历_ResumeAI.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            // 隐藏可能影响排版的闪烁光标等临时元素
+            const blinker = element.querySelector('.cursor-blink');
+            if(blinker) blinker.remove();
+
+            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
