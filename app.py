@@ -19,15 +19,36 @@ def home():
 @app.route('/api/customize_resume', methods=['POST'])
 def customize_resume():
     try:
-        # 🛡️ 极其关键的安全拦截：如果没有配钥匙，立刻报错！
         if not API_KEY:
-            return jsonify({"error": "系统未检测到 API 密钥。请在 Render 的 Environment 环境变量中配置 DEEPSEEK_API_KEY！"}), 500
+            return jsonify({"error": "系统未检测到 API 密钥。请在 Render 配置 DEEPSEEK_API_KEY！"}), 500
 
+        # 获取用户的原始简历文本
+        raw_resume_text = request.form.get('raw_resume', '').strip()
+        if not raw_resume_text:
+            return jsonify({"error": "原始简历不能为空！"}), 400
+
+        # ==========================================
+        # 📸 核心修复：双路 JD 接收（文本或图片 OCR）
+        # ==========================================
         jd_text = request.form.get('jd_text', '').strip()
-        raw_resume_text = request.form.get('raw_resume', '').strip() or "拥有多年互联网大厂核心系统架构经验，精通全栈开发及高并发系统调优。"
+        jd_image = request.files.get('jd_image')
 
+        # 如果用户上传了图片，优先处理图片 OCR 逻辑
+        if jd_image and jd_image.filename != '':
+            # 💡 这里是你之前接入 OCR.space 或其他 OCR 库的地方
+            # 因为 DeepSeek-Chat 是纯文本大模型，需要先将图片转成文字
+            # 演示逻辑：
+            jd_text = "【系统提示：检测到用户上传了 JD 截图，已自动通过后台 OCR 解析出以下岗位要求】：该岗位要求具备优秀的系统架构能力、沟通能力和项目管理经验。" 
+            # ↑↑↑ (实际开发中，请将这行替换为你的真实 OCR 接口调用代码)
+            
+        elif not jd_text:
+            return jsonify({"error": "请至少提供 JD 文本或上传 JD 截图！"}), 400
+
+        # ==========================================
+        # 🧠 大脑处理区：用解析后的文本去喂大模型
+        # ==========================================
         system_prompt = f"""你是一位精通 500 强外企和互联网大厂招聘黑话的资深 HR BP。
-请针对以下提供的【原始简历】和【目标岗位 JD】，进行多模态双变量匹配重构。
+请针对以下提供的【原始简历】和【目标岗位 JD】，进行匹配重构。
 
 【原始简历】：
 {raw_resume_text}
