@@ -9,7 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* 纯白简历排版 */
         .resume-body h1 { font-size: 1.7rem; font-weight: 900; color: #0f172a; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #2563eb; padding-bottom: 6px; }
         .resume-body h2 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 1.4rem 0 0.6rem 0; background: #f0fdf4; padding: 6px 12px; border-left: 4px solid #16a34a; }
         .resume-body h3 { font-size: 1.1rem; font-weight: 700; color: #2563eb; margin-top: 1rem; }
@@ -17,18 +16,19 @@
         .resume-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #334155; }
         .resume-body li { margin-bottom: 0.4rem; line-height: 1.6; }
         
-        /* 🌙 独立暗黑备考区专属排版（不进入PDF） */
         .dark-zone h1, .dark-zone h2, .dark-zone h3 { color: #f8fafc !important; }
         .dark-zone h2 { background: #1e293b !important; border-left: 4px solid #f59e0b !important; }
         .dark-zone h3 { color: #f59e0b !important; }
         .dark-zone p, .dark-zone li { color: #cbd5e1 !important; }
 
-        .mode-radio:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        /* 修复触发问题：监听被选中的 radio */
+        .mode-radio:checked + div { background-color: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
         .mode-radio:not(:checked) + div { background-color: white; color: #64748b; border-color: #e2e8f0; }
+        
         .cursor-blink { animation: blink 1s step-end infinite; color: #3b82f6; font-weight: 900; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        .file-upload-zone { border: 2px dashed #cbd5e1; background-color: #f8fafc; transition: all 0.3s; }
+        .file-upload-zone { border: 2px dashed #cbd5e1; background-color: #f8fafc; transition: all 0.3s; position: relative; }
         .file-upload-zone:hover { border-color: #3b82f6; background-color: #eff6ff; }
     </style>
 </head>
@@ -40,23 +40,24 @@
                 <i class="fa-solid fa-file-signature text-blue-500 text-2xl"></i>
                 <h1 class="text-xl font-black text-slate-800 tracking-tight">Resume<span class="text-blue-500">AI</span></h1>
             </div>
-            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">V2.1 纯净切割渲染版</span>
+            <span class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">V2.2 全平台防阻断引擎</span>
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto px-4 py-8">
         <div class="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 mb-8">
             <form id="resumeForm" onsubmit="startGeneration(event)" class="space-y-8">
+                
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-user-tie text-blue-500 mr-2"></i>第一步：上传您的原有简历内容</label>
                         <div class="inline-flex bg-slate-100 rounded-lg p-1">
                             <label class="cursor-pointer">
-                                <input type="radio" name="resume_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('resume')">
+                                <input type="radio" name="resume_mode" value="text" class="sr-only mode-radio" checked onclick="toggleInput('resume')">
                                 <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">粘贴文本</div>
                             </label>
                             <label class="cursor-pointer">
-                                <input type="radio" name="resume_mode" value="pdf" class="hidden mode-radio" onchange="toggleInput('resume')">
+                                <input type="radio" name="resume_mode" value="pdf" class="sr-only mode-radio" onclick="toggleInput('resume')">
                                 <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传 PDF</div>
                             </label>
                         </div>
@@ -64,10 +65,10 @@
                     <div id="resume_text_zone">
                         <textarea id="resume_text" rows="5" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将您的原有简历文本粘贴至此..."></textarea>
                     </div>
-                    <div id="resume_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer relative">
-                        <input type="file" id="resume_file" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="showFileName(this, 'resume_filename')">
+                    <div id="resume_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer">
+                        <input type="file" id="resume_file" accept="application/pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" onchange="showFileName(this, 'resume_filename')">
                         <i class="fa-solid fa-file-pdf text-4xl text-slate-400 mb-3"></i>
-                        <p class="text-sm font-bold text-slate-600" id="resume_filename">点击或拖拽上传 PDF 简历</p>
+                        <p class="text-sm font-bold text-slate-600 relative z-10" id="resume_filename">点击或拖拽上传 PDF 简历</p>
                     </div>
                 </div>
 
@@ -76,11 +77,11 @@
                         <label class="block text-base font-bold text-slate-700"><i class="fa-solid fa-briefcase text-emerald-500 mr-2"></i>第二步：导入目标岗位 JD (招聘需求)</label>
                         <div class="inline-flex bg-slate-100 rounded-lg p-1">
                             <label class="cursor-pointer">
-                                <input type="radio" name="jd_mode" value="text" class="hidden mode-radio" checked onchange="toggleInput('jd')">
+                                <input type="radio" name="jd_mode" value="text" class="sr-only mode-radio" checked onclick="toggleInput('jd')">
                                 <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">粘贴文本</div>
                             </label>
                             <label class="cursor-pointer">
-                                <input type="radio" name="jd_mode" value="image" class="hidden mode-radio" onchange="toggleInput('jd')">
+                                <input type="radio" name="jd_mode" value="image" class="sr-only mode-radio" onclick="toggleInput('jd')">
                                 <div class="px-4 py-1.5 rounded-md text-xs font-bold transition-all">上传截图</div>
                             </label>
                         </div>
@@ -88,10 +89,10 @@
                     <div id="jd_text_zone">
                         <textarea id="jd_text" rows="4" class="w-full p-4 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="请将岗位描述(JD)粘贴至此..."></textarea>
                     </div>
-                    <div id="jd_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer relative">
-                        <input type="file" id="jd_file" accept="image/png, image/jpeg, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="showFileName(this, 'jd_filename')">
+                    <div id="jd_file_zone" class="hidden file-upload-zone rounded-xl p-8 text-center cursor-pointer">
+                        <input type="file" id="jd_file" accept="image/png, image/jpeg, image/webp" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" onchange="showFileName(this, 'jd_filename')">
                         <i class="fa-solid fa-image text-4xl text-slate-400 mb-3"></i>
-                        <p class="text-sm font-bold text-slate-600" id="jd_filename">点击或拖拽上传 JD 截图</p>
+                        <p class="text-sm font-bold text-slate-600 relative z-10" id="jd_filename">点击或拖拽上传 JD 截图</p>
                     </div>
                 </div>
 
@@ -105,7 +106,6 @@
         </div>
 
         <section id="resultSection" class="hidden space-y-6">
-            
             <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden min-h-[250px] relative">
                 <div class="absolute top-6 right-6 hidden z-10" id="pdfBtnWrapper">
                     <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 px-4 rounded-lg shadow-md transition flex items-center space-x-1.5">
@@ -113,21 +113,19 @@
                         <span>导出纯净 A4 简历 PDF</span>
                     </button>
                 </div>
-
                 <div class="p-10 resume-body" id="exportContent">
                     <div id="resumeDisplay"></div>
                 </div>
             </div>
 
             <div id="interviewZone" class="hidden p-8 bg-slate-900 text-slate-100 rounded-2xl shadow-xl dark-zone resume-body">
-                </div>
-
+            </div>
         </section>
     </main>
 
     <script>
         function toggleInput(type) {
-            const mode = document.querySelector(`input[name="${type}_mode"]:checked').value;
+            const mode = document.querySelector(`input[name="${type}_mode"]:checked`).value;
             if (mode === 'text') {
                 document.getElementById(`${type}_text_zone`).classList.remove('hidden');
                 document.getElementById(`${type}_file_zone`).classList.add('hidden');
@@ -220,10 +218,8 @@
                                 if (parsed.text) {
                                     currentText += parsed.text;
                                     
-                                    // 🚀 核心黑科技：实时双向动线解耦切割
                                     let resumeMarkdown = currentText;
                                     let interviewMarkdown = "";
-                                    
                                     const splitRegex = /###?\s*🌙?\s*暗黑备考区/i;
                                     const match = currentText.match(splitRegex);
                                     
@@ -233,10 +229,8 @@
                                         interviewMarkdown = currentText.substring(index);
                                     }
                                     
-                                    // 渲染纯白简历区
                                     resumeDisplay.innerHTML = marked.parse(resumeMarkdown) + (match ? '' : '<span class="cursor-blink">█</span>');
                                     
-                                    // 渲染暗黑备考区
                                     if (interviewMarkdown) {
                                         interviewZone.classList.remove('hidden');
                                         interviewZone.innerHTML = marked.parse(interviewMarkdown) + '<span class="cursor-blink">█</span>';
@@ -247,7 +241,6 @@
                     }
                 }
 
-                // 定型去掉所有残余光标
                 let finalResume = currentText;
                 let finalInterview = "";
                 const splitRegex = /###?\s*🌙?\s*暗黑备考区/i;
@@ -274,7 +267,7 @@
             const element = document.getElementById('exportContent');
             const opt = {
                 margin:       12,
-                filename:     '张羽_精选对齐简历.pdf',
+                filename:     '定制简历_ResumeAI.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
