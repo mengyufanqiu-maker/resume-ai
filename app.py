@@ -1,83 +1,136 @@
 import os
 import requests
-from flask import Flask, request, jsonify, render_template
+import json
+import fitz  # PyMuPDF，用于解析 PDF
+from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
 
 # ==========================================
-# 🔐 100% 大厂无痕规范：仅从系统环境变量读取
+# 🔐 环境变量与 API 密钥
 # ==========================================
-API_KEY = os.environ.get("DEEPSEEK_API_KEY")
-API_URL = "https://api.deepseek.com/v1/chat/completions"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
+OCR_SPACE_API_KEY = os.environ.get("OCR_SPACE_API_KEY", "helloworld") # 免费测试 Key，建议自己去注册一个换上
+
+def extract_text_from_pdf(file_bytes):
+    """从上传的 PDF 字节流中提取纯文本"""
+    text = ""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        for page in doc:
+            text += page.get_text()
+        return text.strip()
+    except Exception as e:
+        return f"PDF解析失败: {str(e)}"
+
+def extract_text_from_image(file_bytes):
+    """调用 OCR.space 接口识别 JD 截图中的文字"""
+    try:
+        response = requests.post(
+            'https://api.ocr.space/parse/image',
+            files={'file': ('image.jpg', file_bytes, 'image/jpeg')},
+            data={'apikey': OCR_SPACE_API_KEY, 'language': 'chs', 'isOverlayRequired': False},
+            timeout=15
+        )
+        result = response.json()
+        if result.get('IsErroredOnProcessing'):
+            return "OCR 识别出错，请确保图片清晰。"
+        
+        parsed_text = result.get('ParsedResults', [{}])[0].get('ParsedText', '')
+        return parsed_text.strip()
+    except Exception as e:
+        return f"OCR网络请求失败: {str(e)}"
 
 @app.route('/')
 def home():
     return render_template('index.html')
 
-@app.route('/api/customize_resume', methods=['POST'])
-def customize_resume():
-    try:
-        if not API_KEY:
-            return jsonify({"error": "系统未检测到 API 密钥。请在 Render 配置 DEEPSEEK_API_KEY！"}), 500
+@app.route('/api/generate_resume', methods=['POST'])
+def generate_resume():
+    if not DEEPSEEK_API_KEY:
+        return jsonify({"error": "未检测到 DEEPSEEK_API_KEY"}), 500
 
-        # 获取用户的原始简历文本
-        raw_resume_text = request.form.get('raw_resume', '').strip()
-        if not raw_resume_text:
-            return jsonify({"error": "原始简历不能为空！"}), 400
+    # 1. 接收 FormData 数据
+    resume_mode = request.form.get('resume_mode', 'text')
+    jd_mode = request.form.get('jd_mode', 'text')
+    
+    # 2. 提取简历文本
+    resume_text = ""
+    if resume_mode == 'pdf' and 'resume_file' in request.files:
+        file = request.files['resume_file']
+        resume_text = extract_text_from_pdf(file.read())
+    else:
+        resume_text = request.form.get('resume_text', '').strip()
 
-        # ==========================================
-        # 📸 核心修复：双路 JD 接收（文本或图片 OCR）
-        # ==========================================
+    # 3. 提取 JD 文本
+    jd_text = ""
+    if jd_mode == 'image' and 'jd_file' in request.files:
+        file = request.files['jd_file']
+        jd_text = extract_text_from_image(file.read())
+    else:
         jd_text = request.form.get('jd_text', '').strip()
-        jd_image = request.files.get('jd_image')
 
-        # 如果用户上传了图片，优先处理图片 OCR 逻辑
-        if jd_image and jd_image.filename != '':
-            # 💡 这里是你之前接入 OCR.space 或其他 OCR 库的地方
-            # 因为 DeepSeek-Chat 是纯文本大模型，需要先将图片转成文字
-            # 演示逻辑：
-            jd_text = "【系统提示：检测到用户上传了 JD 截图，已自动通过后台 OCR 解析出以下岗位要求】：该岗位要求具备优秀的系统架构能力、沟通能力和项目管理经验。" 
-            # ↑↑↑ (实际开发中，请将这行替换为你的真实 OCR 接口调用代码)
-            
-        elif not jd_text:
-            return jsonify({"error": "请至少提供 JD 文本或上传 JD 截图！"}), 400
+    if not resume_text or not jd_text:
+        return jsonify({"error": "简历或JD内容提取失败，请检查输入法方式或文件是否为空！"}), 400
 
-        # ==========================================
-        # 🧠 大脑处理区：用解析后的文本去喂大模型
-        # ==========================================
-        system_prompt = f"""你是一位精通 500 强外企和互联网大厂招聘黑话的资深 HR BP。
-请针对以下提供的【原始简历】和【目标岗位 JD】，进行匹配重构。
+    # 4. 构造大模型提示词
+    system_prompt = f"""你是一位拥有十年大厂经验的高级技术与HR双料专家。当前任务：根据用户提供的目标岗位 JD，对其原有简历进行深度重构与精准对齐。
 
-【原始简历】：
-{raw_resume_text}
+【输入数据】：
+1. 原有简历内容：
+{resume_text}
 
-【目标岗位 JD】：
+2. 目标岗位 JD (招聘需求)：
 {jd_text}
 
-【输出格式要求】：
-请直接输出 Markdown 格式，且必须用三个英文减号 '---' 将输出内容切割为上下两个独立模块：
-1. 上半部分（打印简历区）：按照 STAR 原则，将简历中与 JD 匹配的经历进行高频词对齐重构，输出一份可用于 A4 纸张打印的纯净简历。
-2. 下半部分（暗黑备考区）：基于该 JD 的核心红线，预测 3 道面试官必问的行为面试题（Behavioral Interview），并给出教科书级回答话术。
+【输出规范】：
+1. 关键词对齐：提取 JD 中的核心能力词汇，无缝融入简历经历中。
+2. STAR法则：将原有经历改写为“情境-任务-行动-结果”结构，用数据化结果说话。
+3. 结构化排版：输出的内容必须包含【个人总结】、【核心技能对齐】、【重构后的项目经历】。
+4. 备考预测：在最后，必须提供一个名为【暗黑备考区】的章节，给出 3 道该岗位极大概率会问到的硬核面试题及作答思路。
+请直接输出 Markdown 格式，绝不废话。
 """
 
-        response = requests.post(API_URL, json={
-            "model": "deepseek-chat",
-            "messages": [{"role": "user", "content": system_prompt}],
-            "temperature": 0.3
-        }, headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }, timeout=60)
+    # 5. SSE 流式输出
+    def generate_stream():
+        try:
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [{"role": "user", "content": system_prompt}],
+                    "temperature": 0.3,
+                    "stream": True,
+                    "max_tokens": 4096
+                },
+                headers={
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                stream=True,
+                timeout=60
+            )
 
-        if response.status_code != 200:
-            return jsonify({"error": f"大模型接口响应异常: {response.status_code}"}), 500
+            for line in response.iter_lines():
+                if line:
+                    decoded_line = line.decode('utf-8').strip()
+                    if decoded_line.startswith('data: '):
+                        data_str = decoded_line[6:].strip()
+                        if data_str == '[DONE]' or not data_str:
+                            continue
+                        try:
+                            data_json = json.loads(data_str)
+                            chunk = data_json['choices'][0]['delta'].get('content', '')
+                            if chunk:
+                                yield f"data: {json.dumps({'text': chunk})}\n\n"
+                        except:
+                            pass
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-        return jsonify({"result": response.json()['choices'][0]['message']['content']})
-
-    except Exception as e:
-        return jsonify({"error": f"系统内部错误: {str(e)}"}), 500
+    return Response(generate_stream(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=os.environ.get("PORT", 5002), debug=True)
